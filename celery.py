@@ -34,30 +34,74 @@ def command(func, _funcs={}):
 
     # play nice and leave the command where it was in this script
     @wraps(func)
-    def wrapped(*args):
-        return func(*args)
+    def wrapped(*args, **kwargs):
+        return func(*args, **kwargs)
     return wrapped
 
 
 def parse_args():
-    """Get the command, or run 'help' if no command is provided"""
+    """Get the command, or run 'help' if no command is provided
+    .. note::
+        The "=" sign is reserved to indicate keyword arguments e.g.
+
+    .. code::
+        python my_file.py my_func kw_1=3 lala
+        python my_file.py my_func --kw_1 3 lala
+        python my_file.py my_func -kw_1 3 lala
+        python my_file.py my_func --kw_1=3 lala
+        python my_file.py my_func -kw_1=3 lala
+
+    Here, "lala" is the first positional argument, kw_1 is a
+    keyword argument with value "3"
+    """
     if len(sys.argv) < 2:
-        cmd, args = 'help', []
+        cmd, raw_args = 'help', []
     else:
-        cmd, args = sys.argv[1].lower(), sys.argv[2:]
+        cmd, raw_args = sys.argv[1].lower(), sys.argv[2:]
+
+    # Parse raw_args into *args and **kwargs
+    args = []
+    kwargs = {}
+    iter_args = iter(raw_args)
+    for arg in iter_args:
+        if arg[:2] == "--":
+            if len(arg.split("=")) == 1:
+                # eat the next arg for value
+                kwargs[arg[2:]] = next(iter_args)
+            elif len(arg[2:].split("=")) == 2:
+                # use the rhs of "=" as value
+                kwargs[arg[2:].split("=")[0]] = arg[2:].split("=")[1]
+            else:
+                raise Exception('Invalid kwarg format "{}"'.format(arg))
+        elif arg[:1] == "-":
+            if len(arg.split("=")) == 1:
+                # eat the next arg for value
+                kwargs[arg[1:]] = next(iter_args)
+            elif len(arg[1:].split("=")) == 2:
+                # use the rhs of "=" as value
+                kwargs[arg[1:].split("=")[0]] = arg[1:].split("=")[1]
+            else:
+                raise Exception('Invalid kwarg format "{}"'.format(arg))
+        elif len(arg.split("=")) == 2:
+            kwargs[arg.split("=")[0]] = arg.split("=")[1]
+        else:
+            # positional arguments
+            args.append(arg)
 
     # Map the command to a function, falling back to 'help' if it's not found
     funcs = command.__defaults__[0]  # _funcs={}
     if cmd not in funcs:
-        cmd, args = 'help', cmd
+        output = funcs['help'](cmd)
+        print(output)
+        return
 
     # do it!
     try:
-        output = funcs[cmd](*args)
+        output = funcs[cmd](*args, **kwargs)
         # (and print the output)
         if output:
             print(output)
-    except TypeError as e:
+    except Exception as e:
         help(cmd)
         raise e
 
@@ -94,23 +138,24 @@ def _indent(string, spaces=4, bullet='?'):
 
 
 @command
-def help(*args):
+def help(*args, **kwargs):
     """Get usage information about this script
     Multiple lines!"""
 
     text = ""
-    for f_name in args:
+    for i, f_name in enumerate(args):
         # Find f_name in available commands
         try:
             func = command.__defaults__[0][f_name]
-            text += "Usage: {} {}".format(sys.argv[0],
+            text += "Usage: {} {}\n".format(sys.argv[0],
                                           _signature(f_name, func))
             if func.__doc__:
                 text += _indent(func.__doc__.strip(), spaces=2) + '\n'
             return text
         except KeyError:
-            text += help()
-            text += 'Command "{}" not found :(\n'.format(cmd)
+            text += help() + '\n'
+            text += 'Command "{}" not found :('.format(f_name)
+            return text.strip()
 
     text += 'Usage: {} [command]\n'.format(sys.argv[0])
 
@@ -121,13 +166,10 @@ def help(*args):
     text += '\n'
     text += 'Available commands:\n'
     for name, func in sorted(command.__defaults__[0].items()):  # _funcs={}
-
+        text += _indent(_signature(name, func), 2, '*') + '\n'
         if func.__doc__:
-            text += _indent(_signature(name, func), 2, '*') + '\n'
             text += _indent(func.__doc__.strip(), 4, '?') + '\n'
-        else:
-            text += _indent(_signature(name, func), 2, '?')
-    return text
+    return text.strip()
 
 if __name__ == '__main__':
     parse_args()
