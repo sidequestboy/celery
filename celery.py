@@ -67,7 +67,7 @@ def parse_args():
         if arg[:2] == "--":
             if len(arg.split("=")) == 1:
                 # eat the next arg for value
-                kwargs[arg[2:]] = next(iter_args)
+                kwargs[arg[2:]] = next(iter_args, "")
             elif len(arg[2:].split("=")) == 2:
                 # use the rhs of "=" as value
                 kwargs[arg[2:].split("=")[0]] = arg[2:].split("=")[1]
@@ -76,7 +76,7 @@ def parse_args():
         elif arg[:1] == "-":
             if len(arg.split("=")) == 1:
                 # eat the next arg for value
-                kwargs[arg[1:]] = next(iter_args)
+                kwargs[arg[1:]] = next(iter_args, "")
             elif len(arg[1:].split("=")) == 2:
                 # use the rhs of "=" as value
                 kwargs[arg[1:].split("=")[0]] = arg[1:].split("=")[1]
