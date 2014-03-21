@@ -93,8 +93,12 @@ def parse_args():
 
     # Map the command to a function, falling back to 'help' if it's not found
     funcs = command.__defaults__[0]['__main__']  # _funcs={}
-    if cmd not in funcs:
-        output = funcs['help'](cmd)
+    if cmd == 'help':
+        output = command.__defaults__[0][__name__]['help']()
+        print(output)
+        return
+    elif cmd not in funcs:
+        output = command.__defaults__[0][__name__]['help'](cmd)
         print(output)
         return
 
@@ -105,7 +109,7 @@ def parse_args():
         if output:
             print(output)
     except Exception as e:
-        help(cmd)
+        help()
         raise e
 
 
