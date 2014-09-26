@@ -3,7 +3,7 @@ commands and to generate a commandline help text.
 
 Adapted from @uniphil's code for Qcumber API
 https://github.com/Queens-Hacks/qcumber-api/blob/master/manage.py
-Copyright 2005, 2014 jameh and other contributors
+Copyright 2014 jameh and other contributors
  * Released under the MIT license
  * https://github.com/jameh/celery/blob/master/LICENSE
 
